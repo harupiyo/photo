@@ -12,17 +12,17 @@ class PhotoGallery {
         this.lightboxImage = document.getElementById('lightboxImage');
         this.lightboxTitle = document.getElementById('lightboxTitle');
         this.lightboxCounter = document.getElementById('lightboxCounter');
-        
+
         this.init();
     }
-    
+
     async init() {
         await this.loadPhotos();
         this.renderPhotos();
         this.setupEventListeners();
         this.setupLazyLoading();
     }
-    
+
     // Load photos from the images directory
     async loadPhotos() {
         // List of all photos in the images directory
@@ -149,17 +149,17 @@ class PhotoGallery {
             "sdim9932_9643341293_o.jpg", "sdim9971_9646582426_o.jpg", "sdim9989_9643344727_o.jpg",
             "slack_38422809472_o.png"
         ];
-        
+
         this.photos = photoFiles.map((filename, index) => ({
             id: index,
             filename: filename,
             path: `images/${filename}`,
             title: this.formatTitle(filename)
         }));
-        
+
         this.loading.classList.add('hidden');
     }
-    
+
     // Format filename to readable title
     formatTitle(filename) {
         return filename
@@ -170,7 +170,7 @@ class PhotoGallery {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
     }
-    
+
     // Render photos to grid
     renderPhotos() {
         this.photos.forEach((photo, index) => {
@@ -178,39 +178,39 @@ class PhotoGallery {
             this.photoGrid.appendChild(photoCard);
         });
     }
-    
+
     // Create photo card element
     createPhotoCard(photo, index) {
         const card = document.createElement('div');
         card.className = 'photo-card';
         card.dataset.index = index;
-        
+
         const img = document.createElement('img');
         img.dataset.src = photo.path;
         img.alt = photo.title;
         img.className = 'lazy';
-        
+
         const overlay = document.createElement('div');
         overlay.className = 'photo-overlay';
-        
+
         const title = document.createElement('h3');
         title.className = 'photo-title';
         title.textContent = photo.title;
-        
+
         const filename = document.createElement('p');
         filename.className = 'photo-filename';
         filename.textContent = photo.filename;
-        
+
         overlay.appendChild(title);
         overlay.appendChild(filename);
         card.appendChild(img);
         card.appendChild(overlay);
-        
+
         card.addEventListener('click', () => this.openLightbox(index));
-        
+
         return card;
     }
-    
+
     // Setup lazy loading with Intersection Observer
     setupLazyLoading() {
         const imageObserver = new IntersectionObserver((entries, observer) => {
@@ -223,39 +223,45 @@ class PhotoGallery {
                 }
             });
         });
-        
+
         const lazyImages = document.querySelectorAll('img.lazy');
         lazyImages.forEach(img => imageObserver.observe(img));
     }
-    
+
     // Setup event listeners
     setupEventListeners() {
         // Lightbox close button
         document.querySelector('.lightbox-close').addEventListener('click', () => {
             this.closeLightbox();
         });
-        
+
+        // Zoom button
+        const zoomButton = document.querySelector('.lightbox-zoom');
+        zoomButton.addEventListener('click', () => {
+            this.toggleZoom();
+        });
+
         // Navigation buttons
         document.querySelector('.lightbox-prev').addEventListener('click', () => {
             this.navigatePhoto(-1);
         });
-        
+
         document.querySelector('.lightbox-next').addEventListener('click', () => {
             this.navigatePhoto(1);
         });
-        
+
         // Click outside to close
         this.lightbox.addEventListener('click', (e) => {
             if (e.target === this.lightbox) {
                 this.closeLightbox();
             }
         });
-        
+
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (!this.lightbox.classList.contains('active')) return;
-            
-            switch(e.key) {
+
+            switch (e.key) {
                 case 'Escape':
                     this.closeLightbox();
                     break;
@@ -265,10 +271,95 @@ class PhotoGallery {
                 case 'ArrowRight':
                     this.navigatePhoto(1);
                     break;
+                case 'z':
+                case 'Z':
+                    this.toggleZoom();
+                    break;
             }
         });
+
+        // Setup drag to scroll for zoomed images
+        this.setupDragScroll();
     }
-    
+
+    // Setup drag to scroll functionality
+    setupDragScroll() {
+        const container = document.querySelector('.lightbox-image-container');
+        const image = document.querySelector('.lightbox-image');
+
+        let isDown = false;
+        let startX;
+        let startY;
+        let scrollLeft;
+        let scrollTop;
+
+        // Prevent default image drag
+        image.addEventListener('dragstart', (e) => {
+            e.preventDefault();
+        });
+
+        container.addEventListener('mousedown', (e) => {
+            if (!container.classList.contains('zoomed')) return;
+            isDown = true;
+            container.classList.add('active');
+
+            // Get initial mouse position
+            startX = e.pageX - container.offsetLeft;
+            startY = e.pageY - container.offsetTop;
+
+            // Get initial scroll position
+            scrollLeft = container.scrollLeft;
+            scrollTop = container.scrollTop;
+
+            // Change cursor
+            container.style.cursor = 'grabbing';
+        });
+
+        const stopDrag = () => {
+            if (!isDown) return;
+            isDown = false;
+            container.classList.remove('active');
+            container.style.cursor = 'grab';
+        };
+
+        container.addEventListener('mouseleave', stopDrag);
+        container.addEventListener('mouseup', stopDrag);
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+
+            // Calculate distance moved
+            const x = e.pageX - container.offsetLeft;
+            const y = e.pageY - container.offsetTop;
+
+            // 1:1 movement feels more natural than * 2
+            const walkX = (x - startX);
+            const walkY = (y - startY);
+
+            // Update scroll position
+            // Subtract walk because dragging left should move view right (scroll right)
+            container.scrollLeft = scrollLeft - walkX;
+            container.scrollTop = scrollTop - walkY;
+        });
+    }
+
+    // Toggle zoom mode
+    toggleZoom() {
+        const container = document.querySelector('.lightbox-image-container');
+        const zoomButton = document.querySelector('.lightbox-zoom');
+
+        container.classList.toggle('zoomed');
+        zoomButton.classList.toggle('active');
+
+        // Reset scroll position when zooming out
+        if (!container.classList.contains('zoomed')) {
+            container.scrollLeft = 0;
+            container.scrollTop = 0;
+        }
+    }
+
+
     // Open lightbox with photo
     openLightbox(index) {
         this.currentPhotoIndex = index;
@@ -276,27 +367,35 @@ class PhotoGallery {
         this.lightbox.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
-    
+
     // Close lightbox
     closeLightbox() {
         this.lightbox.classList.remove('active');
         document.body.style.overflow = '';
+
+        // Reset zoom state
+        const container = document.querySelector('.lightbox-image-container');
+        const zoomButton = document.querySelector('.lightbox-zoom');
+        container.classList.remove('zoomed');
+        zoomButton.classList.remove('active');
+        container.scrollLeft = 0;
+        container.scrollTop = 0;
     }
-    
+
     // Navigate to next/previous photo
     navigatePhoto(direction) {
         this.currentPhotoIndex += direction;
-        
+
         // Wrap around
         if (this.currentPhotoIndex < 0) {
             this.currentPhotoIndex = this.photos.length - 1;
         } else if (this.currentPhotoIndex >= this.photos.length) {
             this.currentPhotoIndex = 0;
         }
-        
+
         this.updateLightbox();
     }
-    
+
     // Update lightbox content
     updateLightbox() {
         const photo = this.photos[this.currentPhotoIndex];

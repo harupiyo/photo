@@ -19,7 +19,7 @@
     --accent-blue-hover: #0052b8;
     --overlay-dark: rgba(0, 0, 0, 0.9);
     --overlay-hover: rgba(0, 0, 0, 0.6);
-    
+
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -27,7 +27,7 @@
     --spacing-lg: 24px;
     --spacing-xl: 32px;
     --spacing-2xl: 48px;
-    
+
     /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-size-sm: 0.875rem;
@@ -35,12 +35,12 @@
     --font-size-lg: 1.125rem;
     --font-size-xl: 1.5rem;
     --font-size-2xl: 2rem;
-    
+
     /* Transitions */
     --transition-fast: 0.2s ease;
     --transition-base: 0.3s ease;
     --transition-slow: 0.5s ease;
-    
+
     /* Border Radius */
     --radius-sm: 4px;
     --radius-md: 8px;
@@ -217,7 +217,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ==========================================
@@ -330,6 +332,98 @@ body {
     right: var(--spacing-lg);
 }
 
+.lightbox-zoom {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: calc(var(--spacing-lg) + 64px);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-primary);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    z-index: 1001;
+}
+
+.lightbox-zoom:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.lightbox-zoom.active {
+    background-color: var(--accent-blue);
+}
+
+.lightbox-zoom.active:hover {
+    background-color: var(--accent-blue-hover);
+}
+
+.lightbox-image-container {
+    width: 100%;
+    height: 80vh;
+    overflow: hidden;
+    /* Hide overflow by default */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    position: relative;
+    /* Context for absolute positioning if needed */
+}
+
+.lightbox-image-container.zoomed {
+    cursor: grab;
+    overflow: auto;
+    /* Allow scrolling when zoomed */
+    display: block;
+    /* Switch to block to allow full scrolling */
+}
+
+/* Ensure smooth cursor change */
+.lightbox-image-container.zoomed:active {
+    cursor: grabbing;
+}
+
+.lightbox-image-container.zoomed .lightbox-image {
+    max-width: none;
+    max-height: none;
+    width: auto;
+    height: auto;
+    min-width: 100%;
+    /* Ensure it fills at least the container */
+    min-height: 100%;
+    object-fit: contain;
+    /* Reset object-fit */
+    display: block;
+    margin: 0 auto;
+}
+
+/* Custom scrollbar for zoomed images - improved visibility */
+.lightbox-image-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.lightbox-image-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.lightbox-image-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 5px;
+}
+
+.lightbox-image-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+
 /* ==========================================
    Footer
    ========================================== */
@@ -350,21 +444,21 @@ body {
         grid-template-columns: 1fr;
         gap: var(--spacing-sm);
     }
-    
+
     .header .container {
         flex-direction: column;
         gap: var(--spacing-md);
     }
-    
+
     .logo {
         font-size: var(--font-size-lg);
     }
-    
+
     .lightbox-nav {
         width: 44px;
         height: 44px;
     }
-    
+
     .lightbox-close {
         top: var(--spacing-md);
         right: var(--spacing-md);
@@ -394,6 +488,7 @@ body {
    Accessibility
    ========================================== */
 @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {
