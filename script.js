@@ -5,22 +5,28 @@
 class PhotoGallery {
     constructor() {
         this.photos = [];
-        this.currentPhotoIndex = 0;
         this.photoGrid = document.getElementById('photoGrid');
         this.loading = document.getElementById('loading');
+
+        // Lightbox elements
         this.lightbox = document.getElementById('lightbox');
         this.lightboxImage = document.getElementById('lightboxImage');
         this.lightboxTitle = document.getElementById('lightboxTitle');
         this.lightboxCounter = document.getElementById('lightboxCounter');
+
+        // State
+        this.currentPhotoIndex = 0;
+        this.columns = [];
+        this.columnCount = 1;
 
         this.init();
     }
 
     async init() {
         await this.loadPhotos();
-        this.renderPhotos();
+        this.setupColumns();
+        this.renderAll();
         this.setupEventListeners();
-        this.setupLazyLoading();
     }
 
     // Load photos from the images directory
@@ -157,26 +163,48 @@ class PhotoGallery {
             title: this.formatTitle(filename)
         }));
 
-        this.loading.classList.add('hidden');
+        this.loading.classList.add('hidden'); // Hide loading spinner as we load all
     }
 
-    // Format filename to readable title
-    formatTitle(filename) {
-        return filename
-            .replace(/\.[^/.]+$/, '') // Remove extension
-            .replace(/_/g, ' ')
-            .replace(/-/g, ' ')
-            .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
+    // Determine number of columns based on window width
+    getColumnsCount() {
+        const width = window.innerWidth;
+        if (width >= 1600) return 4;
+        if (width >= 1200) return 3;
+        if (width >= 768) return 2;
+        return 1;
     }
 
-    // Render photos to grid
-    renderPhotos() {
+    // Initialize columns
+    setupColumns() {
+        this.columnCount = this.getColumnsCount();
+        this.photoGrid.innerHTML = '';
+        this.columns = [];
+
+        for (let i = 0; i < this.columnCount; i++) {
+            const column = document.createElement('div');
+            column.className = 'masonry-column';
+            this.photoGrid.appendChild(column);
+            this.columns.push(column);
+        }
+    }
+
+    // Render all photos immediately
+    renderAll() {
+        if (!this.photos.length) return;
+
+        // Distribute all photos to columns round-robin
         this.photos.forEach((photo, index) => {
-            const photoCard = this.createPhotoCard(photo, index);
-            this.photoGrid.appendChild(photoCard);
+            const card = this.createPhotoCard(photo, index);
+            const colIndex = index % this.columnCount;
+            this.columns[colIndex].appendChild(card);
         });
+    }
+
+    // Re-render all (e.g., on resize)
+    reRenderAll() {
+        this.setupColumns(); // Reset columns
+        this.renderAll();    // Re-distribute
     }
 
     // Create photo card element
@@ -186,9 +214,20 @@ class PhotoGallery {
         card.dataset.index = index;
 
         const img = document.createElement('img');
-        img.dataset.src = photo.path;
+        img.dataset.src = photo.path; // Keep data-src if needed, but main src is key
+        img.src = photo.path;
         img.alt = photo.title;
-        img.className = 'lazy';
+        img.loading = "lazy"; // Native lazy loading
+
+        // Fade in when loaded
+        img.onload = () => {
+            img.classList.add('loaded');
+        };
+
+        // If image is cached, onload might not trigger, so check complete
+        if (img.complete) {
+            img.classList.add('loaded');
+        }
 
         const overlay = document.createElement('div');
         overlay.className = 'photo-overlay';
@@ -211,25 +250,31 @@ class PhotoGallery {
         return card;
     }
 
-    // Setup lazy loading with Intersection Observer
-    setupLazyLoading() {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
-                    observer.unobserve(img);
-                }
-            });
-        });
-
-        const lazyImages = document.querySelectorAll('img.lazy');
-        lazyImages.forEach(img => imageObserver.observe(img));
+    // Setup format title (helper)
+    formatTitle(filename) {
+        return filename
+            .replace(/\.[^/.]+$/, '') // Remove extension
+            .replace(/_/g, ' ')
+            .replace(/-/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     // Setup event listeners
     setupEventListeners() {
+        // Debounced resize handler
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const newColCount = this.getColumnsCount();
+                if (newColCount !== this.columnCount) {
+                    this.reRenderAll();
+                }
+            }, 200);
+        });
+
         // Lightbox close button
         document.querySelector('.lightbox-close').addEventListener('click', () => {
             this.closeLightbox();
@@ -278,7 +323,6 @@ class PhotoGallery {
             }
         });
 
-        // Setup drag to scroll for zoomed images
         this.setupDragScroll();
     }
 

@@ -128,20 +128,32 @@ body {
    Photo Grid
    ========================================== */
 .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: flex;
     gap: var(--spacing-md);
+    align-items: flex-start;
     margin-bottom: var(--spacing-2xl);
+}
+
+.masonry-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    min-width: 0;
+    /* Prevent overflow issues */
 }
 
 .photo-card {
     position: relative;
     overflow: hidden;
     border-radius: var(--radius-md);
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-tertiary);
+    /* Placeholder color */
     cursor: pointer;
-    aspect-ratio: 4 / 3;
     transition: transform var(--transition-base);
+    width: 100%;
+    min-height: 200px;
+    /* Default frame height */
 }
 
 .photo-card:hover {
@@ -153,7 +165,14 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform var(--transition-slow);
+    transition: transform var(--transition-slow), opacity var(--transition-base);
+    opacity: 0;
+    /* Hidden initially */
+}
+
+.photo-card img.loaded {
+    opacity: 1;
+    /* Fade in */
 }
 
 .photo-card:hover img {
@@ -440,8 +459,13 @@ body {
    Responsive Design
    ========================================== */
 @media (max-width: 767px) {
+
+    /* Handled by JS column calculation, just ensure gaps are right */
     .photo-grid {
-        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+    }
+
+    .masonry-column {
         gap: var(--spacing-sm);
     }
 
@@ -467,21 +491,15 @@ body {
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
-    .photo-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    /* CSS columns removed, JS handles this */
 }
 
 @media (min-width: 1200px) {
-    .photo-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    /* CSS columns removed, JS handles this */
 }
 
 @media (min-width: 1600px) {
-    .photo-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
+    /* CSS columns removed, JS handles this */
 }
 
 /* ==========================================
